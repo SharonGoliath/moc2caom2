@@ -3,7 +3,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2019.                            (c) 2019.
+#  (c) 2020.                            (c) 2020.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,71 +67,24 @@
 # ***********************************************************************
 #
 
-from mock import patch
-
-from blank2caom2 import main_app, APPLICATION, COLLECTION, BlankName
-from blank2caom2 import ARCHIVE
-from caom2.diff import get_differences
-from caom2pipe import manage_composable as mc
-
 import os
-import sys
 
-THIS_DIR = os.path.dirname(os.path.realpath(__file__))
-TEST_DATA_DIR = os.path.join(THIS_DIR, 'data')
-PLUGIN = os.path.join(os.path.dirname(THIS_DIR), 'main_app.py')
-
-LOOKUP = {'key': ['fileid1', 'fileid2']}
+from caom2pipe import manage_composable as mc
+from moc2caom2 import moc_augmentation
+import test_main_app
 
 
-def pytest_generate_tests(metafunc):
-    obs_id_list = []
-    for ii in LOOKUP:
-        obs_id_list.append(ii)
-    metafunc.parametrize('test_name', obs_id_list)
+def test_moc_aug():
+    test_output_file = f'{test_main_app.TEST_DATA_DIR}/1045034p_moc.fits'
+    if os.path.exists(test_output_file):
+        os.unlink(test_output_file)
 
-
-def test_main_app(test_name):
-    basename = os.path.basename(test_name)
-    neos_name = BlankName(file_name=basename)
-    output_file = f'{TEST_DATA_DIR}/{basename}.actual.xml'
-    obs_path = f'{TEST_DATA_DIR}/{neos_name.obs_id}.expected.xml'
-    expected = mc.read_obs_from_file(obs_path)
-
-    with patch('caom2utils.fits2caom2.CadcDataClient') as data_client_mock:
-        def get_file_info(archive, file_id):
-            return {'type': 'application/fits'}
-
-        data_client_mock.return_value.get_file_info.side_effect = get_file_info
-        sys.argv = \
-            (f'{APPLICATION} --no_validate --local {_get_local(test_name)} ' \
-             f'--observation {COLLECTION} {test_name} -o {output_file} ' \
-             f'--plugin {PLUGIN} --module {PLUGIN} --lineage ' \
-             f'{_get_lineage(test_name)}').split()
-        print(sys.argv)
-        main_app.to_caom2()
-
-    actual = mc.read_obs_from_file(output_file)
-    result = get_differences(expected, actual, 'Observation')
-    if result:
-        text = '\n'.join([r for r in result])
-        msg = f'Differences found in observation {expected.observation_id} ' \
-              f'test name {test_name}\n{text}'
-        raise AssertionError(msg)
-    # assert False  # cause I want to see logging messages
-
-
-def _get_lineage(obs_id):
-    result = ''
-    for ii in LOOKUP[obs_id]:
-        product_id = BlankName.extract_product_id(ii)
-        fits = mc.get_lineage(ARCHIVE, product_id, f'{ii}.fits')
-        result = f'{result} {fits}'
-    return result
-
-
-def _get_local(obs_id):
-    result = ''
-    for ii in LOOKUP[obs_id]:
-        result = f'{result} {TEST_DATA_DIR}/{ii}.fits.header'
-    return result
+    test_obs = mc.read_obs_from_file(
+        f'{test_main_app.TEST_DATA_DIR}/1045034.xml')
+    kwargs = {'working_directory': test_main_app.TEST_DATA_DIR,
+              'science_file': '1045034p.fits.fz'}
+    test_result = moc_augmentation.visit(test_obs, **kwargs)
+    assert test_result is not None, 'expect a result'
+    assert test_result.get('artifacts') == 2, 'wrong result'
+    assert os.path.exists(test_output_file), 'expect output file'
+    assert False

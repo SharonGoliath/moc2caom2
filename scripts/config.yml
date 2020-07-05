@@ -18,6 +18,8 @@ todo_file_name: todo.txt
 # .fits, .gz, .json endings as defining the work to be 
 # done.
 use_local_files: True
+# URI for data retrieval
+data_source: vos:goliaths/moc/test
 # values DEBUG INFO WARNING ERROR
 logging_level: DEBUG
 # values True False
