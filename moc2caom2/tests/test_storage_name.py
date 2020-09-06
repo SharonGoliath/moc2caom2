@@ -70,4 +70,20 @@ from moc2caom2 import MOCName
 
 
 def test_is_valid():
-    assert MOCName('anything').is_valid()
+    assert MOCName(file_name='anything').is_valid()
+
+
+def test_storage_name():
+    test_subject = MOCName(file_name='vos:goliaths/moc/test/abc.fits.fz')
+    assert test_subject is not None, 'expect ctor success'
+    assert test_subject.file_name == 'abc.fits.fz', 'wrong file name'
+    assert test_subject.product_id == 'abc', 'wrong product id'
+    assert test_subject.obs_id == 'ab', 'wrong obs id'
+
+
+def test_storage_name_artifact_uri():
+    test_subject = MOCName(artifact_uri='vos:goliaths/moc/test/abc.fits.fz')
+    assert test_subject is not None, 'expect ctor success'
+    assert test_subject.file_name == 'abc.fits.fz', 'wrong file name'
+    assert test_subject.product_id == 'abc', 'wrong product id'
+    assert test_subject.obs_id == 'ab', 'wrong obs id'

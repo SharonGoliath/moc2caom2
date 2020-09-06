@@ -71,20 +71,23 @@ import os
 
 from caom2pipe import manage_composable as mc
 from moc2caom2 import moc_augmentation
-import test_main_app
+
+
+THIS_DIR = os.path.dirname(os.path.realpath(__file__))
+TEST_DATA_DIR = os.path.join(THIS_DIR, 'data')
 
 
 def test_moc_aug():
-    test_output_file = f'{test_main_app.TEST_DATA_DIR}/1045034p_moc.fits'
+    test_output_file = f'{TEST_DATA_DIR}/1045034p_moc.fits'
     if os.path.exists(test_output_file):
         os.unlink(test_output_file)
 
     test_obs = mc.read_obs_from_file(
-        f'{test_main_app.TEST_DATA_DIR}/1045034.xml')
-    kwargs = {'working_directory': test_main_app.TEST_DATA_DIR,
+        f'{TEST_DATA_DIR}/1045034.xml')
+    kwargs = {'working_directory': TEST_DATA_DIR,
               'science_file': '1045034p.fits.fz'}
     test_result = moc_augmentation.visit(test_obs, **kwargs)
     assert test_result is not None, 'expect a result'
     assert test_result.get('artifacts') == 2, 'wrong result'
     assert os.path.exists(test_output_file), 'expect output file'
-    assert False
+    # assert False

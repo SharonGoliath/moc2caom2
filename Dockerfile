@@ -11,7 +11,6 @@ RUN pip install cadcdata\
     caom2repo \
     caom2utils \
     deprecated \
-    ftputils \
     importlib-metadata \
     pytz \
     PyYAML \

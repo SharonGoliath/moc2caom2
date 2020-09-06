@@ -84,7 +84,8 @@ from caom2pipe import manage_composable as mc
 from caom2pipe import name_builder_composable as nbc
 from caom2pipe import run_composable as rc
 from caom2pipe import transfer_composable as tc
-from moc2caom2 import APPLICATION, moc_augmentation, vault_data_source, MOCName
+from cfht2caom2 import APPLICATION
+from moc2caom2 import moc_augmentation, vault_data_source, MOCName
 
 
 META_VISITORS = []
@@ -105,8 +106,7 @@ def _run():
     name_builder = nbc.FileNameBuilder(MOCName)
     transferrer = tc.VoTransfer(config)
     return rc.run_by_todo(config=config, name_builder=name_builder,
-                          command_name=APPLICATION,
-                          data_source=data_source,
+                          command_name=APPLICATION, source=data_source,
                           meta_visitors=META_VISITORS, 
                           data_visitors=DATA_VISITORS, chooser=None,
                           transferrer=transferrer)
@@ -117,29 +117,6 @@ def run():
     try:
         result = _run()
         sys.exit(result)
-    except Exception as e:
-        logging.error(e)
-        tb = traceback.format_exc()
-        logging.debug(tb)
-        sys.exit(-1)
-
-
-def _run_state():
-    """Uses a state file with a timestamp to control which entries will be
-    processed.
-    """
-    return rc.run_by_state(config=None, name_builder=None,
-                           command_name=APPLICATION, 
-                           bookmark_name=None, meta_visitors=META_VISITORS,
-                           data_visitors=DATA_VISITORS, end_time=None,
-                           source=None, chooser=None)
-
-
-def run_state():
-    """Wraps _run_state in exception handling."""
-    try:
-        _run_state()
-        sys.exit(0)
     except Exception as e:
         logging.error(e)
         tb = traceback.format_exc()

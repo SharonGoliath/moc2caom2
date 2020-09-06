@@ -73,7 +73,7 @@ import os
 from astropy.io import fits
 from astropy.time import Time
 from mocpy import STMOC, MOC
-from caom2 import Observation
+from caom2 import Observation, ReleaseType, ProductType
 from caom2pipe import manage_composable as mc
 import vos
 
@@ -82,13 +82,19 @@ def visit(observation, **kwargs):
     mc.check_param(observation, Observation)
     working_directory = kwargs.get('working_directory', './')
     science_file = kwargs.get('science_file')
+    cadc_client = kwargs.get('cadc_client')
 
+    if science_file is None:
+        raise mc.CadcException('science_file must be defined.')
     science_fqn = f'{working_directory}/{science_file}'
     science_out_fqn = science_fqn.replace('.fits', '_moc.fits').replace(
         '.fz', '')
 
     cert_fqn = f'/usr/src/app/cadcproxy.pem'
-    vos_client = vos.Client(vospace_certfile=cert_fqn)
+    vos_client = None
+    # this check is just how to know if TaskType == SCRAPE
+    if cadc_client is not None:
+        vos_client = vos.Client(vospace_certfile=cert_fqn)
     vos_space = 'vos:goliaths/moc'
     dest_moc_fqn = f'{vos_space}/' \
                    f'{science_file.replace(".fits", "_moc.fits" ).replace(".fz", "")}'
@@ -117,23 +123,29 @@ def visit(observation, **kwargs):
                   f'{working_directory}/Aladin4Daniel.jar -mocgen order=16 ' \
                   f'in={science_fqn} out={science_out_fqn} hdu=all ' \
                   f'{e_params} {t_params}'
-        logging.error(moc_cmd)
         mc.exec_cmd(moc_cmd)
 
         with fits.open(science_out_fqn, mode='update') as hdus:
+            logging.info(f'Updating {science_out_fqn} to pass fitsverify.')
             cur_date = hdus[1].header.get('DATE')
-            logging.error(cur_date)
             iso_date = mc.make_time(cur_date)
-            logging.error(iso_date)
             hdus[1].header['DATE'] = iso_date.isoformat()
             hdus.flush()
-            vos_client.copy(science_out_fqn, dest_moc_fqn,
-                            send_md5=True)
+            if vos_client is not None:
+                vos_client.copy(science_out_fqn, dest_moc_fqn,
+                                send_md5=True)
+            temp = None
+            if dest_moc_fqn in plane.artifacts:
+                temp = plane.artifacts[dest_moc_fqn]
+            plane.artifacts[dest_moc_fqn] = mc.get_artifact_metadata(
+                science_out_fqn, ProductType.SCIENCE, ReleaseType.DATA,
+                dest_moc_fqn, temp)
             count += 1
 
         if t_min is not None:
             stmoc_out_fqn = science_fqn.replace(
                 '.fits', '_stmoc.fits').replace('.fz', '')
+            logging.info(f'Creating a Time MOC in {stmoc_out_fqn}')
             if os.path.exists(stmoc_out_fqn):
                 os.unlink(stmoc_out_fqn)
             moc = MOC.from_fits(science_out_fqn)
@@ -141,10 +153,19 @@ def visit(observation, **kwargs):
             times_end = Time([t_max], format='mjd', scale='tdb')
             stmoc = STMOC.from_spatial_coverages(times_start, times_end, [moc])
             stmoc.write(stmoc_out_fqn)
-            vos_client.copy(stmoc_out_fqn, dest_stmoc_fqn,
-                            send_md5=True)
+            if vos_client is not None:
+                vos_client.copy(stmoc_out_fqn, dest_stmoc_fqn,
+                                send_md5=True)
             count += 1
-    return {'artifacts': count}
+
+            temp = None
+            if dest_stmoc_fqn in plane.artifacts:
+                temp = plane.artifacts[dest_stmoc_fqn]
+            plane.artifacts[dest_stmoc_fqn] = mc.get_artifact_metadata(
+                stmoc_out_fqn, ProductType.SCIENCE, ReleaseType.DATA,
+                dest_stmoc_fqn, temp)
+
+        return {'artifacts': count}
 
 
 # get a todo list from reading a vospace directory
