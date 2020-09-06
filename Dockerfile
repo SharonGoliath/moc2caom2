@@ -30,7 +30,12 @@ ARG OMC_REPO=opencadc-metadata-curation
 
 RUN git clone https://github.com/${OMC_REPO}/caom2pipe.git --branch ${OMC_BRANCH} --single-branch && \
   pip install ./caom2pipe
-  
+
+RUN git clone https://github.com/${OMC_REPO}/moc2caom2.git && \
+  cp ./moc2caom2/scripts/config.yml / && \
+  cp ./moc2caom2/scripts/docker-entrypoint.sh / && \
+  pip install ./moc2caom2
+
 RUN git clone https://github.com/${OMC_REPO}/moc2caom2.git && \
   cp ./moc2caom2/scripts/config.yml / && \
   cp ./moc2caom2/scripts/docker-entrypoint.sh / && \
