@@ -120,7 +120,7 @@ def visit(observation, **kwargs):
             t_params = f'addprop=T_MIN={t_min} addprop=T_MAX={t_max}'
 
         moc_cmd = f'/usr/lib/jvm/java-11-openjdk-amd64/bin/java -jar ' \
-                  f'{working_directory}/Aladin4Daniel.jar -mocgen order=16 ' \
+                  f'/usr/lib/Aladin4Daniel.jar -mocgen order=16 ' \
                   f'in={science_fqn} out={science_out_fqn} hdu=all ' \
                   f'{e_params} {t_params}'
         mc.exec_cmd(moc_cmd)
