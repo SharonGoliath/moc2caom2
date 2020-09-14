@@ -131,16 +131,13 @@ def visit(observation, **kwargs):
             iso_date = mc.make_time(cur_date)
             hdus[1].header['DATE'] = iso_date.isoformat()
             hdus.flush()
-            if vos_client is not None:
-                vos_client.copy(science_out_fqn, dest_moc_fqn,
-                                send_md5=True)
+            count += _vos_write(science_out_fqn, dest_moc_fqn, vos_client)
             temp = None
             if dest_moc_fqn in plane.artifacts:
                 temp = plane.artifacts[dest_moc_fqn]
             plane.artifacts[dest_moc_fqn] = mc.get_artifact_metadata(
                 science_out_fqn, ProductType.SCIENCE, ReleaseType.DATA,
                 dest_moc_fqn, temp)
-            count += 1
 
         if t_min is not None:
             stmoc_out_fqn = science_fqn.replace(
@@ -153,10 +150,7 @@ def visit(observation, **kwargs):
             times_end = Time([t_max], format='mjd', scale='tdb')
             stmoc = STMOC.from_spatial_coverages(times_start, times_end, [moc])
             stmoc.write(stmoc_out_fqn)
-            if vos_client is not None:
-                vos_client.copy(stmoc_out_fqn, dest_stmoc_fqn,
-                                send_md5=True)
-            count += 1
+            count += _vos_write(stmoc_out_fqn, dest_stmoc_fqn, vos_client)
 
             temp = None
             if dest_stmoc_fqn in plane.artifacts:
@@ -181,3 +175,16 @@ def visit(observation, **kwargs):
 # is provided from the data source class?
 # seems somewhat reasonable
 # could handle the ftpclient that way too?
+
+
+def _vos_write(source_fqn, dest_fqn, vos_client):
+    count = 0
+    try:
+        if vos_client is not None:
+            vos_client.copy(source_fqn, dest_fqn, send_md5=True)
+            count = 1
+    except Exception as e:
+        import traceback
+        logging.debug(traceback.format_exc())
+        logging.error(f'Encountered {e} when writing to {dest_fqn}')
+    return count
