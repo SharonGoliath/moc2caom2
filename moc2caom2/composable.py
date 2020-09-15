@@ -102,11 +102,10 @@ def _run():
     config = mc.Config()
     config.get_executors()
     # source_directory = 'vos:sfabbro/megawcs'
-    data_source = vault_data_source.VaultListDirDataSource(config)
     name_builder = nbc.FileNameBuilder(MOCName)
     transferrer = tc.VoTransfer(config)
     return rc.run_by_todo(config=config, name_builder=name_builder,
-                          command_name=APPLICATION, source=data_source,
+                          command_name=APPLICATION, source=None,
                           meta_visitors=META_VISITORS, 
                           data_visitors=DATA_VISITORS, chooser=None,
                           transferrer=transferrer)
@@ -116,6 +115,38 @@ def run():
     """Wraps _run in exception handling, with sys.exit calls."""
     try:
         result = _run()
+        sys.exit(result)
+    except Exception as e:
+        logging.error(e)
+        tb = traceback.format_exc()
+        logging.debug(tb)
+        sys.exit(-1)
+
+
+def _run_remote_list():
+    """
+    Uses a VOSpace directory listing to identify the work to be done.
+
+    :return 0 if successful, -1 if there's any sort of failure. Return status
+        is used by airflow for task instance management and reporting.
+    """
+    config = mc.Config()
+    config.get_executors()
+    # source_directory = 'vos:sfabbro/megawcs'
+    data_source = vault_data_source.VaultListDirDataSource(config)
+    name_builder = nbc.FileNameBuilder(MOCName)
+    transferrer = tc.VoTransfer(config)
+    return rc.run_by_todo(config=config, name_builder=name_builder,
+                          command_name=APPLICATION, source=data_source,
+                          meta_visitors=META_VISITORS,
+                          data_visitors=DATA_VISITORS, chooser=None,
+                          transferrer=transferrer)
+
+
+def run_remote_list():
+    """Wraps _run in exception handling, with sys.exit calls."""
+    try:
+        result = _run_remote_list()
         sys.exit(result)
     except Exception as e:
         logging.error(e)
